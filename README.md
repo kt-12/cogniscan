@@ -53,6 +53,8 @@ folder. Click the toolbar icon, enter a URL, pick **Goal** (type what the virtua
 achieve) or **Auto-explore**, choose models, press **Start recording**. Chrome shows its
 "is being debugged" banner while the virtual mouse works; that is expected.
 
+<img src="docs/popup.png" alt="Extension popup: URL, mode, goal, model pickers, start/stop and status" width="340">
+
 ## How a run works
 
 1. The extension opens the URL in a new tab, attaches the DevTools protocol and starts a screencast.
