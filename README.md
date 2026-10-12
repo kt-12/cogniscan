@@ -14,6 +14,8 @@ Chrome extension ──HTTP──▶ local server (FastAPI) ──▶ TRIBE v2 w
 
 ## What you get
 
+![Slideshow: website flow on the left, predicted brain activity on the right, TRIBE stats and model interpretation below](docs/viewer.png)
+
 A slideshow per run (`http://127.0.0.1:8787/view/<run>`):
 
 - **Left**: the recorded website flow (video scrubbed to the step, or the step screenshot) with the
@@ -64,7 +66,10 @@ achieve) or **Auto-explore**, choose models, press **Start recording**. Chrome s
 4. `server/interpret/stats.py` turns rows into ROI/parcel statistics per step; `writer.py` asks the
    interpretation model for text; everything lands in `data/runs/<id>/slides.json`.
 
-Processing takes roughly 12× the recording length on a GB10 (V-JEPA2 is the bottleneck).
+Processing takes roughly 12× the recording length on a GB10 (V-JEPA2 is the bottleneck). The run list
+at `http://127.0.0.1:8787` shows live progress:
+
+![Run list with status and progress per run](docs/runs.png)
 
 ### Without the extension
 
