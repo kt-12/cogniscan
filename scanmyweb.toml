@@ -1,0 +1,18 @@
+# scanmyweb configuration (overrides server/config.py defaults; scanmyweb.local.toml overrides this,
+# environment variables SCANMYWEB_<KEY> override everything).
+
+port = 8787
+
+# Model presets from server/llm/models.yaml
+nav_model = "qwen3-vl"      # must have vision: true
+interp_model = "qwen3-vl"   # text-only presets work too (qwen3-text, gpt-oss, glm-flash, nemotron-nano)
+
+# Recording limits
+max_flow_seconds = 90       # interaction time per run (the clock pauses while the model thinks)
+max_steps = 20
+
+# TRIBE environment (defaults point at /home/karthvks/tribev2-eval; override here or with TRIBE_EVAL_DIR)
+# tribe_python = "/path/to/tribev2-venv/bin/python"
+# hf_home = "/path/to/hf_cache"
+# mne_data = "/path/to/mne_data"
+# tribe_cache = "/path/to/neuralset-cache"

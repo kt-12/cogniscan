@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+data/
+server/static/mesh.json
+scanmyweb.local.toml
+*.egg-info/

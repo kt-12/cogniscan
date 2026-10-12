@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "scanmyweb",
+  "version": "0.1.0",
+  "description": "Drives a website with a virtual mouse using a local LLM, records the flow, and sends it to the scanmyweb server for TRIBE v2 brain-response prediction.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "debugger",
+    "tabs",
+    "scripting",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8787/*",
+    "http://localhost:8787/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "scanmyweb"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "smw_core.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

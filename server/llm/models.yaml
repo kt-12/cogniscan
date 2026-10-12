@@ -1,0 +1,52 @@
+# Model presets. `provider` is a key in server/llm/__init__.py:PROVIDERS.
+# `vision: true` means the model accepts images (required for navigation).
+# Pick presets by name in scanmyweb.toml (nav_model / interp_model) or in the extension popup.
+models:
+  qwen3-vl:
+    provider: ollama
+    model: qwen3-vl:32b-instruct
+    vision: true
+    description: Qwen3-VL 32B instruct (default for navigation and interpretation)
+    options:
+      num_ctx: 16384
+
+  qwen3-vl-thinking:
+    provider: ollama
+    model: qwen3-vl:32b
+    vision: true
+    description: Qwen3-VL 32B with reasoning (slower, sometimes better at multi-step goals)
+    options:
+      num_ctx: 16384
+
+  qwen3-text:
+    provider: ollama
+    model: qwen3.8:27b
+    vision: false
+    description: Qwen3.8 27B text-only; interpretation only
+    options:
+      num_ctx: 16384
+
+  gpt-oss:
+    provider: ollama
+    model: gpt-oss:20b
+    vision: false
+    description: OpenAI gpt-oss 20B text-only; interpretation only
+
+  glm-flash:
+    provider: ollama
+    model: glm-4.7-flash:latest
+    vision: false
+    description: GLM 4.7 flash text-only; interpretation only
+
+  nemotron-nano:
+    provider: ollama
+    model: nemotron-3-nano:30b
+    vision: false
+    description: NVIDIA Nemotron 3 nano text-only; interpretation only
+
+  # Example of a non-Ollama backend. Point SCANMYWEB_OPENAI_COMPAT_URL at vLLM / LM Studio.
+  vllm-qwen-vl:
+    provider: openai_compat
+    model: Qwen/Qwen3-VL-32B-Instruct
+    vision: true
+    description: Qwen3-VL served by an OpenAI-compatible endpoint (vLLM, LM Studio)
