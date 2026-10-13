@@ -20,6 +20,8 @@ from ..interpret.writer import interpret_run, interpret_step
 from .recorder import build_video
 
 WORKER = ROOT / "server" / "pipeline" / "tribe_worker.py"
+EXPORTER = ROOT / "server" / "pipeline" / "video_export.py"
+_EXPORT_RE = re.compile(r"\[export\] (.+?) (\d+)%")
 _ENCODING_RE = re.compile(r"Encoding video:\s*(\d+)%")
 
 
@@ -70,32 +72,43 @@ class RunStore:
 class JobQueue:
     def __init__(self, store: RunStore):
         self.store = store
-        self.q: queue.Queue[str] = queue.Queue()
+        self.q: queue.Queue[tuple[str, str, dict]] = queue.Queue()
         self.current: str | None = None
+        self.current_kind: str | None = None
         self.thread = threading.Thread(target=self._loop, daemon=True, name="scanmyweb-jobs")
         self.thread.start()
 
     def submit(self, run_id: str) -> None:
         self.store.update(run_id, status="queued", progress={"stage": "queued", "pct": 0})
-        self.q.put(run_id)
+        self.q.put(("process", run_id, {}))
+
+    def submit_export(self, run_id: str, **opts) -> None:
+        self.store.update(run_id, export={"status": "queued", "pct": 0, "stage": "queued", **opts})
+        self.q.put(("export", run_id, opts))
 
     def pending(self) -> list[str]:
-        return list(self.q.queue)
+        return [rid if kind == "process" else f"{rid}:{kind}" for kind, rid, _ in list(self.q.queue)]
 
     def _loop(self) -> None:
         while True:
-            run_id = self.q.get()
-            self.current = run_id
+            kind, run_id, opts = self.q.get()
+            self.current, self.current_kind = run_id, kind
             try:
-                process_run(self.store, run_id)
+                if kind == "process":
+                    process_run(self.store, run_id)
+                elif kind == "export":
+                    run_export(self.store, run_id, **opts)
             except Exception as e:  # noqa: BLE001
                 traceback.print_exc()
-                self.store.update(
-                    run_id, status="failed", error=f"{type(e).__name__}: {e}",
-                    progress={"stage": "failed", "pct": 0},
-                )
+                if kind == "process":
+                    self.store.update(
+                        run_id, status="failed", error=f"{type(e).__name__}: {e}",
+                        progress={"stage": "failed", "pct": 0},
+                    )
+                else:
+                    self.store.update(run_id, export={"status": "failed", "error": f"{type(e).__name__}: {e}"})
             finally:
-                self.current = None
+                self.current = self.current_kind = None
                 self.q.task_done()
 
 
@@ -147,6 +160,54 @@ def run_tribe_worker(store: RunStore, run_id: str, video: Path, out_dir: Path) -
     if proc.returncode != 0:
         tail = "".join(log.read_text().splitlines(keepends=True)[-15:])
         raise RuntimeError(f"TRIBE worker exited with {proc.returncode}:\n{tail}")
+
+
+def run_export(store: RunStore, run_id: str, views: str = "lateral", fps: int = 10, **_ignored) -> dict:
+    """Render RUN/export.mp4 with the TRIBE interpreter (pyvista); progress goes to run.json["export"]."""
+    run_dir = store.dir(run_id)
+    surf_dir = CONFIG.static_dir / "surf"
+    if not (surf_dir / "parcels.json").exists():
+        raise RuntimeError("surfaces missing: run `scanmyweb export-mesh` first")
+    if not (run_dir / "slides.json").exists():
+        raise RuntimeError("run is not processed yet")
+    log = run_dir / "export.log"
+    cmd = [str(CONFIG.tribe_python), str(EXPORTER), str(run_dir), str(surf_dir), "--views", views, "--fps", str(fps)]
+    store.update(run_id, export={"status": "running", "pct": 0, "stage": "starting", "views": views})
+    with open(log, "w") as lf:
+        proc = subprocess.Popen(cmd, cwd=str(ROOT), env=CONFIG.worker_env(), stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, bufsize=1)
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            lf.write(line)
+            m = _EXPORT_RE.search(line)
+            if m and m.group(1) != "done":
+                store.update(run_id, export={"status": "running", "pct": int(m.group(2)), "stage": m.group(1), "views": views})
+        proc.wait()
+    if proc.returncode != 0:
+        tail = "".join(log.read_text().splitlines(keepends=True)[-12:])
+        raise RuntimeError(f"video export exited with {proc.returncode}:\n{tail}")
+    meta = read_json(run_dir / "export.json", {}) or {}
+    state = {"status": "done", "pct": 100, "stage": "done", **meta}
+    store.update(run_id, export=state)
+    return state
+
+
+def backfill_surfaces(store: RunStore, run_id: str) -> str:
+    """Write tribe/{lh,rh}.func.gii from preds.npy for runs processed before the NiiVue viewer."""
+    tribe_dir = store.dir(run_id) / "tribe"
+    if (tribe_dir / "rh.func.gii").exists():
+        return "present"
+    if not (tribe_dir / "preds.npy").exists():
+        return "no preds.npy"
+    code = (
+        "import sys, numpy as np; sys.path.insert(0, sys.argv[1]); from surfaces import write_pred_hemispheres; "
+        "print(write_pred_hemispheres(sys.argv[2], np.load(sys.argv[2] + '/preds.npy')))"
+    )
+    subprocess.run(
+        [str(CONFIG.tribe_python), "-c", code, str(WORKER.parent), str(tribe_dir)],
+        check=True, env=CONFIG.worker_env(), capture_output=True, text=True,
+    )
+    return "written"
 
 
 def process_run(store: RunStore, run_id: str) -> dict:

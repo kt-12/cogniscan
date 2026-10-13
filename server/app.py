@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -81,7 +81,8 @@ def health():
         "llm": {"ok": ok, "detail": msg},
         "tribe_python": str(CONFIG.tribe_python),
         "tribe_python_ok": CONFIG.tribe_python.exists(),
-        "mesh_ok": (CONFIG.static_dir / "mesh.json").exists(),
+        "mesh_ok": (CONFIG.static_dir / "surf" / "parcels.json").exists(),
+        "ui_ok": (CONFIG.static_dir / "dist" / "index.html").exists(),
         "max_flow_seconds": CONFIG.max_flow_seconds,
         "max_steps": CONFIG.max_steps,
         "processing": jobs.current,
@@ -229,6 +230,25 @@ def reprocess(run_id: str, interp_model: str | None = None, redo_tribe: bool = F
     return store.get(run_id)
 
 
+@app.post("/api/runs/{run_id}/export")
+def export_video(run_id: str, views: str = "lateral", fps: int = 10):
+    run = _run_or_404(run_id)
+    if run.get("status") != "done":
+        raise HTTPException(409, "run is not processed yet")
+    if views not in ("lateral", "four"):
+        raise HTTPException(400, "views must be lateral or four")
+    ex = run.get("export") or {}
+    if ex.get("status") in ("queued", "running"):
+        raise HTTPException(409, "export already in progress")
+    jobs.submit_export(run_id, views=views, fps=max(2, min(30, fps)))
+    return store.get(run_id)
+
+
+@app.get("/api/runs/{run_id}/export.mp4")
+def export_file(run_id: str):
+    return FileResponse(_file(run_id, "export.mp4"), media_type="video/mp4", filename=f"scanmyweb-{run_id}.mp4")
+
+
 # ---------------------------------------------------------------- agent
 @app.post("/api/agent/step")
 def agent_step(body: AgentStepIn):
@@ -270,6 +290,26 @@ def preds_i8(run_id: str):
     return Response(_file(run_id, "tribe/preds.i8").read_bytes(), media_type="application/octet-stream")
 
 
+@app.get("/api/runs/{run_id}/preds/{hemi}.func.gii")
+def preds_gii(run_id: str, hemi: str):
+    if hemi not in ("lh", "rh"):
+        raise HTTPException(400, "hemi must be lh or rh")
+    return FileResponse(_file(run_id, f"tribe/{hemi}.func.gii"), media_type="application/gzip",
+                        filename=f"{hemi}.func.gii")
+
+
+@app.get("/surf/{name}")
+def surf_file(name: str):
+    """Shared fsaverage5 files produced by `scanmyweb export-mesh` (NiiVue reads them by extension)."""
+    if "/" in name or ".." in name:
+        raise HTTPException(400, "bad name")
+    p = CONFIG.static_dir / "surf" / name
+    if not p.exists():
+        raise HTTPException(404, "missing: run `scanmyweb export-mesh`")
+    media = "application/json" if name.endswith(".json") else "application/octet-stream"
+    return FileResponse(p, media_type=media, filename=name)
+
+
 @app.get("/api/runs/{run_id}/video")
 def video(run_id: str, request: Request):
     return FileResponse(_file(run_id, "stimulus.mp4"), media_type="video/mp4")
@@ -290,23 +330,22 @@ def worker_log(run_id: str):
 
 
 # ---------------------------------------------------------------- UI
+def _index() -> FileResponse:
+    dist = CONFIG.static_dir / "dist" / "index.html"
+    if not dist.exists():
+        raise HTTPException(503, "UI not built: run `make ui` (needs node) or pull a release with server/static/dist")
+    return FileResponse(dist, headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/")
 def index():
-    return FileResponse(CONFIG.static_dir / "index.html")
+    return _index()
 
 
 @app.get("/view/{run_id}")
 def view(run_id: str):
     _run_or_404(run_id)
-    return FileResponse(CONFIG.static_dir / "index.html")
-
-
-@app.get("/mesh.json")
-def mesh():
-    p = CONFIG.static_dir / "mesh.json"
-    if not p.exists():
-        return JSONResponse({"error": "mesh.json missing: run `scanmyweb export-mesh`"}, status_code=404)
-    return FileResponse(p, media_type="application/json")
+    return _index()
 
 
 app.mount("/static", StaticFiles(directory=str(CONFIG.static_dir)), name="static")

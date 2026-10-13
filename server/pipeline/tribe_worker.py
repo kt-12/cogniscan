@@ -134,6 +134,12 @@ def main() -> None:
     np.save(out_dir / "preds.npy", preds)
     q = np.clip(np.rint(preds / I8_SCALE * 127), -127, 127).astype(np.int8)
     (out_dir / "preds.i8").write_bytes(np.ascontiguousarray(q).tobytes())
+    try:
+        from surfaces import write_pred_hemispheres
+
+        write_pred_hemispheres(out_dir, preds)
+    except Exception as e:  # noqa: BLE001 - viewer falls back to preds.i8
+        print(f"[worker] func.gii export skipped: {e}", flush=True)
 
     tr = float(model.data.TR)
     work_dur = prep["working_copy"]["duration_s"]

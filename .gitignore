@@ -5,5 +5,7 @@ __pycache__/
 .ruff_cache/
 data/
 server/static/mesh.json
+server/static/surf/
+ui/node_modules/
 scanmyweb.local.toml
 *.egg-info/

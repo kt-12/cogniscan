@@ -1,22 +1,18 @@
 #!/usr/bin/env python
-"""Export the inflated fsaverage5 mesh + HCP parcel ids for the browser viewer.
+"""Export the inflated fsaverage5 surfaces + HCP parcel ids for the browser viewer and the video export.
 
-    python -m server.pipeline.mesh_export OUT_JSON
+    python -m server.pipeline.mesh_export SURF_DIR
 
-Executed with the TRIBE interpreter (needs nilearn + mne). Output JSON fields (typed arrays are
-base64 of little-endian binary):
-    nV, nHemi, nFaces, hemiCenters
-    coords   Float32 nV x 3 (mm; x right, y anterior, z up), hemispheres side by side
-    faces    Uint32  nFaces x 3
-    sulc     Float32 nV, sulcal depth (positive = sulcus)
-    parcel   Uint16  nV, 0 = none, else 1-based index into parcelNames
-    parcelNames  ["L_V1", ..., "R_V1", ...]
-    roiGroups    {key: {label, parcels, hemi, about, parcelIds: [...]}}
+Executed with the TRIBE interpreter (needs nilearn + mne + nibabel). Writes to SURF_DIR:
+    {lh,rh}.inflated.surf.gii   GIfTI surface (hemispheres centred, placed side by side; x right, y anterior, z up)
+    {lh,rh}.sulc.curv           FreeSurfer curv, sulcal depth (positive = sulcus)
+    parcels.json                {nHemi, parcelNames ["L_V1", ...], parcel: {lh: [...], rh: [...]} (0 = none,
+                                else 1-based index into parcelNames), roiGroups: {key: {label, parcels, hemi,
+                                about, parcelIds}}}
 """
 
 from __future__ import annotations
 
-import base64
 import json
 import sys
 from pathlib import Path
@@ -26,12 +22,6 @@ sys.path.insert(0, str(HERE))
 
 N_HEMI = 10242
 HEMI_GAP = 12.0
-
-
-def b64(arr) -> str:
-    import numpy as np
-
-    return base64.b64encode(np.ascontiguousarray(arr).tobytes()).decode("ascii")
 
 
 def main(out: Path) -> None:
@@ -75,23 +65,23 @@ def main(out: Path) -> None:
                     ids.append(parcel_names.index(key) + 1)
         roi_groups[k] = {**spec, "parcelIds": ids}
 
-    payload = {
-        "surface": "fsaverage5 inflated (nilearn), hemispheres centred and placed side by side",
-        "nV": int(coords.shape[0]),
+    # NiiVue-readable files: one GIfTI surface + curv per hemisphere, parcels as JSON
+    from surfaces import HEMIS, write_curv, write_surf_gii
+
+    surf_dir = out
+    surf_dir.mkdir(parents=True, exist_ok=True)
+    n_faces_hemi = faces.shape[0] // 2
+    for h, hemi in enumerate(HEMIS):
+        lo, hi = h * N_HEMI, (h + 1) * N_HEMI
+        write_surf_gii(surf_dir / f"{hemi}.inflated.surf.gii", coords[lo:hi], faces[h * n_faces_hemi:(h + 1) * n_faces_hemi] - lo)
+        write_curv(surf_dir / f"{hemi}.sulc.curv", sulc[lo:hi], n_faces_hemi)
+    (surf_dir / "parcels.json").write_text(json.dumps({
         "nHemi": N_HEMI,
-        "nFaces": int(faces.shape[0]),
-        "hemiCenters": centers,
-        "coords": b64(coords),
-        "faces": b64(faces),
-        "sulc": b64(sulc),
-        "parcel": b64(parcel),
         "parcelNames": parcel_names,
+        "parcel": {hemi: parcel[h * N_HEMI:(h + 1) * N_HEMI].tolist() for h, hemi in enumerate(HEMIS)},
         "roiGroups": roi_groups,
-    }
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, separators=(",", ":")))
-    print(f"{out}: {coords.shape[0]} vertices, {faces.shape[0]} faces, {len(parcel_names)} parcels, "
-          f"{out.stat().st_size / 1e6:.2f} MB")
+    }, separators=(",", ":")))
+    print(f"{surf_dir}: " + ", ".join(sorted(q.name for q in surf_dir.iterdir())))
 
 
 if __name__ == "__main__":

@@ -70,9 +70,20 @@ def cmd_agent(args) -> None:
 
 
 def cmd_export_mesh(_args) -> None:
-    out = SROOT / "server" / "static" / "mesh.json"
+    out = SROOT / "server" / "static" / "surf"
     cmd = [str(CONFIG.tribe_python), str(SROOT / "server" / "pipeline" / "mesh_export.py"), str(out)]
     subprocess.run(cmd, check=True, env=CONFIG.worker_env())
+
+
+def cmd_export_video(args) -> None:
+    from server.pipeline.tribe_job import RunStore, run_export
+
+    store = RunStore(CONFIG.data_dir)
+    if not store.get(args.run):
+        sys.exit(f"unknown run {args.run}")
+    state = run_export(store, args.run, views=args.views, fps=args.fps)
+    print(f"{store.dir(args.run) / state['file']}  {state['width']}x{state['height']} {state['fps']} fps, "
+          f"{state['n_frames']} frames, {state['size'] / 1e6:.1f} MB, rendered in {state['render_s']} s")
 
 
 def cmd_models(_args) -> None:
@@ -87,12 +98,18 @@ def cmd_models(_args) -> None:
     print(f"\nnav_model={CONFIG.nav_model}  interp_model={CONFIG.interp_model}")
 
 
-def cmd_runs(_args) -> None:
-    from server.pipeline.tribe_job import RunStore
+def cmd_runs(args) -> None:
+    from server.app import store
+    from server.pipeline.tribe_job import backfill_surfaces
 
-    for r in RunStore(CONFIG.data_dir).list():
-        p = r.get("progress", {})
-        print(f"{r['id']:<24} {r.get('status', ''):<11} {p.get('pct', 0):>5}%  {r.get('mode', ''):<8} {r.get('url', '')}")
+    for r in store.list():
+        extra = ""
+        if args.backfill and r.get("status") == "done":
+            try:
+                extra = "  func.gii: " + backfill_surfaces(store, r["id"])
+            except Exception as e:  # noqa: BLE001
+                extra = f"  func.gii FAILED: {e}"
+        print(f"{r['id']:<24} {r.get('status', '?'):<11} {r.get('url', '')[:50]}{extra}")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -106,8 +123,11 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--chrome", default=None, help="chrome binary (default: google-chrome)"); s.add_argument("--no-wait", action="store_true", help="do not wait for processing")
     s.set_defaults(fn=cmd_agent)
     sub.add_parser("export-mesh").set_defaults(fn=cmd_export_mesh)
+    s = sub.add_parser("export-video", help="render website | brain side-by-side MP4 for a processed run")
+    s.add_argument("run"); s.add_argument("--views", choices=["lateral", "four"], default="lateral"); s.add_argument("--fps", type=int, default=10)
+    s.set_defaults(fn=cmd_export_video)
     sub.add_parser("models").set_defaults(fn=cmd_models)
-    sub.add_parser("runs").set_defaults(fn=cmd_runs)
+    s = sub.add_parser("runs"); s.add_argument("--backfill", action="store_true", help="write lh/rh.func.gii for done runs that lack them"); s.set_defaults(fn=cmd_runs)
     args = ap.parse_args(argv)
     args.fn(args)
 
