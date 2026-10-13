@@ -1,5 +1,12 @@
 # cogniscan
 
+[![CI](https://github.com/kt-12/cogniscan/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kt-12/cogniscan/actions/workflows/ci.yml)
+[![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Lint: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Tests: pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)](tests)
+[![Types: tsc](https://img.shields.io/badge/types-tsc-3178C6?logo=typescript&logoColor=white)](ui/tsconfig.app.json)
+[![Lint: oxlint](https://img.shields.io/badge/lint-oxlint-32F3E9)](https://oxc.rs/docs/guide/usage/linter)
+
 Drive a website with a virtual mouse, record the flow, predict the average human brain's fMRI
 response to it with Meta's [TRIBE v2](https://github.com/facebookresearch/tribev2), and let a local
 LLM explain what the prediction means. Everything runs on your machine.
