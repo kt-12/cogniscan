@@ -74,7 +74,7 @@ export function Timeline({
           key={l.key}
           d={l.d}
           fill="none"
-          className={highlight ? 'stroke-primary' : 'stroke-sky-400/30'}
+          className={highlight ? 'stroke-primary' : 'stroke-sky-600/35 dark:stroke-sky-400/30'}
           strokeWidth={highlight ? 2 : 1}
           vectorEffect="non-scaling-stroke"
         />

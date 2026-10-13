@@ -6,7 +6,9 @@ import { toast } from 'sonner'
 import { api, describeAction, fmtTime, type Slides } from '@/lib/api'
 import { dequantise, roiSeries, type PredMatrix } from '@/lib/preds'
 import { usePlayer } from '@/hooks/usePlayer'
-import { BrainView, COLORMAPS, VIEWS, type ViewName } from '@/components/BrainView'
+import { BrainView, VIEWS, type ViewName } from '@/components/BrainView'
+import { COLORMAPS, legendGradient } from '@/lib/colormaps'
+import { useTheme } from '@/hooks/useTheme'
 import { FlowPanel } from '@/components/FlowPanel'
 import { Transport } from '@/components/Transport'
 import { RoiBars, fromStats } from '@/components/RoiBars'
@@ -45,6 +47,7 @@ function Viewer({ id, data }: { id: string; data: Slides }) {
   const [range, setRange] = useState(Math.min(0.6, data.tribe.i8_scale))
   const [roiKey, setRoiKey] = useState<string | null>(null)
   const [brainErr, setBrainErr] = useState<string | null>(null)
+  const { theme } = useTheme()
 
   useEffect(() => {
     let alive = true
@@ -109,12 +112,13 @@ function Viewer({ id, data }: { id: string; data: Slides }) {
                       threshold={threshold}
                       range={range}
                       colormap={colormap}
+                      theme={theme}
                       view={view}
                       roiKey={roiKey}
                       onReady={(ok, msg) => setBrainErr(ok ? null : msg ?? 'failed')}
                     />
                     {brainErr && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 p-4 text-center text-sm text-red-300">
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 p-4 text-center text-sm text-red-600 dark:text-red-300">
                         Brain viewer failed: {brainErr}. Run <code className="mx-1">cogniscan export-mesh</code> and reload.
                       </div>
                     )}
@@ -146,7 +150,7 @@ function Viewer({ id, data }: { id: string; data: Slides }) {
                       <Slider className="w-24" min={0.1} max={1.2} step={0.05} value={range} onValueChange={(v) => setRange(Array.isArray(v) ? v[0] : v)} />
                       <div className="grow" />
                       <span>−{range.toFixed(2)}</span>
-                      <span className="legend-bar h-2.5 w-28 rounded" />
+                      <span className="h-2.5 w-28 rounded" style={{ background: legendGradient(colormap, theme) }} />
                       <span>+{range.toFixed(2)} a.u.</span>
                     </div>
                   </div>

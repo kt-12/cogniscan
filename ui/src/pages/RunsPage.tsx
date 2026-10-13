@@ -20,7 +20,7 @@ import {
 function StatusBadge({ r }: { r: Run }) {
   const v = r.status === 'done' ? 'secondary' : r.status === 'failed' ? 'destructive' : 'outline'
   return (
-    <Badge variant={v} className={r.status === 'done' ? 'text-emerald-300' : ''}>
+    <Badge variant={v} className={r.status === 'done' ? 'text-emerald-700 dark:text-emerald-300' : ''}>
       {busyStatuses.includes(r.status) && <Loader2 className="size-3 animate-spin" />}
       {r.status}
     </Badge>
@@ -67,7 +67,7 @@ export function RunsPage() {
             <code className="mono text-xs">cogniscan agent URL --goal "…"</code>
           </p>
         </div>
-        {runs.isError && <span className="text-sm text-red-400">{String(runs.error)}</span>}
+        {runs.isError && <span className="text-sm text-red-600 dark:text-red-400">{String(runs.error)}</span>}
       </div>
       <div className="rounded-xl border border-border bg-card">
         <Table>
@@ -92,7 +92,7 @@ export function RunsPage() {
                     {r.status === 'done' ? <Link to={`/view/${r.id}`} className="hover:underline">{r.id}</Link> : r.id}
                   </TableCell>
                   <TableCell>
-                    <a href={r.url} target="_blank" rel="noreferrer" className="text-sky-300 hover:underline">
+                    <a href={r.url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline dark:text-sky-300">
                       {shortUrl(r.url)}
                     </a>
                   </TableCell>
@@ -134,7 +134,7 @@ export function RunsPage() {
                           <Film />
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" className="text-red-300" onClick={() => setToDelete(r)}>
+                      <Button size="sm" variant="ghost" className="text-red-600 dark:text-red-300" onClick={() => setToDelete(r)}>
                         <Trash2 />
                       </Button>
                     </div>

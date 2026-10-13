@@ -4,6 +4,8 @@ import { Niivue, SLICE_TYPE } from '@niivue/niivue'
 type NVMeshLayer = NonNullable<Parameters<Niivue['loadMeshes']>[0][number]['layers']>[number]
 import { api, type Parcels } from '@/lib/api'
 import { N_HEMI, hemiWindowMean, type PredMatrix } from '@/lib/preds'
+import { CORTEX, nvColormaps, nvNames } from '@/lib/colormaps'
+import type { Theme } from '@/hooks/useTheme'
 
 export type ViewName = 'both' | 'left' | 'right' | 'left-medial' | 'right-medial' | 'top' | 'front' | 'back'
 
@@ -31,13 +33,6 @@ const CAMERA: Record<ViewName, { az: number; el: number; hide?: 0 | 1; scale: nu
   back: { az: 0, el: 0, scale: 1.2 },
 }
 
-export const COLORMAPS: { key: string; label: string; pos: string; neg: string }[] = [
-  { key: 'warm-winter', label: 'orange / blue', pos: 'warm', neg: 'winter' },
-  { key: 'hot-cool', label: 'hot / cool', pos: 'hot', neg: 'cool' },
-  { key: 'red-blue', label: 'red / blue', pos: 'red', neg: 'blue' },
-  { key: 'plasma', label: 'plasma (positive only)', pos: 'plasma', neg: '' },
-]
-
 export interface BrainViewProps {
   runId: string
   preds: PredMatrix | null
@@ -47,11 +42,13 @@ export interface BrainViewProps {
   threshold: number // a.u.
   range: number // a.u., colormap saturation
   colormap: string
+  theme: Theme
   view: ViewName
   roiKey: string | null
   onReady?: (ok: boolean, msg?: string) => void
 }
 
+const L_SULC = 0
 const L_PRED = 1
 const L_MASK = 2
 
@@ -68,26 +65,28 @@ export function BrainView(p: BrainViewProps) {
     if (!canvas) return
     let cancelled = false
     const nv = new Niivue({
-      backColor: [0.09, 0.1, 0.13, 1],
+      backColor: [...CORTEX[p.theme].back],
       show3Dcrosshair: false,
       isOrientCube: false,
       isColorbar: false,
       meshThicknessOn2D: Infinity,
       dragMode: 1, // contrast-free: left drag rotates the render
     })
+    for (const [name, cmap] of Object.entries(nvColormaps())) nv.addColormap(name, cmap)
     nvRef.current = nv
     setReady(false)
     ;(async () => {
       try {
         await nv.attachToCanvas(canvas)
         nv.setSliceType(SLICE_TYPE.RENDER)
-        const cm = COLORMAPS.find((c) => c.key === p.colormap) ?? COLORMAPS[0]
+        const cm = nvNames(p.colormap)
+        const cx = CORTEX[p.theme]
         const layers = (hemi: 'lh' | 'rh'): NVMeshLayer[] => [
-          { url: api.urls.surf(`${hemi}.sulc.curv`), colormap: 'gray', opacity: 0.7, cal_min: 0, cal_max: 1 },
+          { url: api.urls.surf(`${hemi}.sulc.curv`), colormap: cx.colormap, opacity: cx.opacity, cal_min: cx.calMin, cal_max: cx.calMax },
           {
             url: api.urls.preds(p.runId, hemi),
             colormap: cm.pos,
-            colormapNegative: cm.neg || 'winter',
+            colormapNegative: cm.neg ?? cm.pos,
             useNegativeCmap: !!cm.neg,
             cal_min: p.threshold,
             cal_max: p.range,
@@ -96,8 +95,8 @@ export function BrainView(p: BrainViewProps) {
           { url: api.urls.surf(`${hemi}.sulc.curv`), colormap: 'green', opacity: 0, cal_min: 0.5, cal_max: 1 },
         ] as unknown as NVMeshLayer[]
         await nv.loadMeshes([
-          { url: api.urls.surf('lh.inflated.surf.gii'), layers: layers('lh') },
-          { url: api.urls.surf('rh.inflated.surf.gii'), layers: layers('rh') },
+          { url: api.urls.surf('lh.inflated.surf.gii'), rgba255: [...cx.mesh], layers: layers('lh') },
+          { url: api.urls.surf('rh.inflated.surf.gii'), rgba255: [...cx.mesh], layers: layers('rh') },
         ])
         if (cancelled) return
         // append one scratch frame per hemisphere for window means
@@ -150,22 +149,30 @@ export function BrainView(p: BrainViewProps) {
     }
   }, [ready, p.frame, p.windowRows, p.preds])
 
-  // colormap / threshold / range
+  // theme / colormap / threshold / range
   useEffect(() => {
     const nv = nvRef.current
     if (!nv || !ready) return
-    const cm = COLORMAPS.find((c) => c.key === p.colormap) ?? COLORMAPS[0]
+    const cm = nvNames(p.colormap)
+    const cx = CORTEX[p.theme]
+    nv.opts.backColor = [...cx.back]
     nv.meshes.forEach((m) => {
+      m.rgba255 = new Uint8Array(cx.mesh)
+      const S = m.layers[L_SULC]
+      S.colormap = cx.colormap
+      S.opacity = cx.opacity
+      S.cal_min = cx.calMin
+      S.cal_max = cx.calMax
       const L = m.layers[L_PRED]
       L.colormap = cm.pos
-      L.colormapNegative = cm.neg || 'winter'
+      L.colormapNegative = cm.neg ?? cm.pos
       L.useNegativeCmap = !!cm.neg
       L.cal_min = p.threshold
       L.cal_max = Math.max(p.threshold + 0.01, p.range)
       m.updateMesh(nv.gl)
     })
     nv.drawScene()
-  }, [ready, p.colormap, p.threshold, p.range])
+  }, [ready, p.colormap, p.theme, p.threshold, p.range])
 
   // camera / hemisphere visibility
   useEffect(() => {

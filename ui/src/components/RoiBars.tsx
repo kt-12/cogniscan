@@ -41,7 +41,7 @@ export function RoiBars({
               <span className="relative h-2 rounded bg-muted">
                 <span className="absolute top-0 bottom-0 left-1/2 w-px bg-border" />
                 <span
-                  className={cn('absolute top-0 h-full rounded', r.z >= 0 ? 'bg-primary' : 'bg-sky-400')}
+                  className={cn('absolute top-0 h-full rounded', r.z >= 0 ? 'bg-primary' : 'bg-sky-500 dark:bg-sky-400')}
                   style={r.z >= 0 ? { left: '50%', width: `${w}%` } : { right: '50%', width: `${w}%` }}
                 />
               </span>

@@ -1,7 +1,8 @@
 import { Link, Outlet, useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, Brain, Cpu, List } from 'lucide-react'
+import { Activity, Brain, Cpu, List, Moon, Sun } from 'lucide-react'
 import { api, busyStatuses, shortUrl } from '@/lib/api'
+import { useTheme } from '@/hooks/useTheme'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -18,6 +19,7 @@ export function Shell() {
   })
   const items = Object.fromEntries((runs.data?.runs ?? []).map((r) => [r.id, `${shortUrl(r.url)} · ${r.id.slice(0, 15)}`]))
   const h = health.data
+  const { theme, toggle } = useTheme()
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -50,14 +52,14 @@ export function Shell() {
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Tooltip>
               <TooltipTrigger render={<span className="flex items-center gap-1" />}>
-                <Cpu className={h.llm.ok ? 'size-3.5 text-emerald-400' : 'size-3.5 text-red-400'} />
+                <Cpu className={h.llm.ok ? 'size-3.5 text-emerald-600 dark:text-emerald-400' : 'size-3.5 text-red-600 dark:text-red-400'} />
                 {h.nav_model}
               </TooltipTrigger>
               <TooltipContent>LLM: {h.llm.detail}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger render={<span className="flex items-center gap-1" />}>
-                <Activity className={h.tribe_python_ok ? 'size-3.5 text-emerald-400' : 'size-3.5 text-red-400'} />
+                <Activity className={h.tribe_python_ok ? 'size-3.5 text-emerald-600 dark:text-emerald-400' : 'size-3.5 text-red-600 dark:text-red-400'} />
                 TRIBE v2
               </TooltipTrigger>
               <TooltipContent>{h.processing ? `processing ${h.processing}` : 'idle'}</TooltipContent>
@@ -65,6 +67,12 @@ export function Shell() {
             {h.processing && <Badge variant="outline">processing {h.processing.slice(0, 15)}</Badge>}
           </div>
         )}
+        <Tooltip>
+          <TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Toggle theme" onClick={toggle} />}>
+            {theme === 'dark' ? <Sun /> : <Moon />}
+          </TooltipTrigger>
+          <TooltipContent>{theme === 'dark' ? 'Light theme' : 'Dark theme'}</TooltipContent>
+        </Tooltip>
       </header>
       <main className="min-h-0 flex-1">
         <Outlet />
