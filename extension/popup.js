@@ -18,7 +18,7 @@ async function init() {
     fill($('#interpModel'), false, saved.interpModel);
     $('#server').textContent = 'server ok';
   } catch (e) {
-    $('#server').textContent = 'server not running: `scanmyweb serve`';
+    $('#server').textContent = 'server not running: `cogniscan serve`';
     $('#status').className = 'err'; $('#status').textContent = 'Cannot reach ' + SERVER;
   }
   refresh();
@@ -33,14 +33,14 @@ $('#start').onclick = async () => {
   const cfg = { url, mode: $('#mode').value, goal: $('#goal').value.trim(), navModel: $('#navModel').value, interpModel: $('#interpModel').value };
   await chrome.storage.local.set(cfg);
   $('#status').className = ''; $('#status').textContent = 'starting…';
-  const res = await chrome.runtime.sendMessage({ type: 'smw:start', ...cfg });
+  const res = await chrome.runtime.sendMessage({ type: 'cogniscan:start', ...cfg });
   if (res && res.error) { $('#status').className = 'err'; $('#status').textContent = res.error; }
   refresh();
 };
-$('#stop').onclick = async () => { await chrome.runtime.sendMessage({ type: 'smw:stop' }); refresh(); };
+$('#stop').onclick = async () => { await chrome.runtime.sendMessage({ type: 'cogniscan:stop' }); refresh(); };
 
 async function refresh() {
-  const st = await chrome.runtime.sendMessage({ type: 'smw:status' });
+  const st = await chrome.runtime.sendMessage({ type: 'cogniscan:status' });
   if (!st) return;
   const running = st.state === 'recording';
   $('#start').disabled = running; $('#stop').disabled = !running;

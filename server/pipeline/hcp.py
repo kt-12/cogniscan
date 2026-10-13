@@ -1,4 +1,4 @@
-"""HCP-MMP1.0 (Glasser et al. 2016) parcels on fsaverage5, and the ROI groupings scanmyweb reports.
+"""HCP-MMP1.0 (Glasser et al. 2016) parcels on fsaverage5, and the ROI groupings cogniscan reports.
 
 Runs inside the TRIBE interpreter (needs `mne`). Same method as `tribev2.utils.get_hcp_labels`
 and run_tribe.py: read the annotation on full fsaverage and keep vertices < 10242, which are the

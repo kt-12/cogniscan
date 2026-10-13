@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "scanmyweb",
+  "name": "cogniscan",
   "version": "0.1.0",
-  "description": "Drives a website with a virtual mouse using a local LLM, records the flow, and sends it to the scanmyweb server for TRIBE v2 brain-response prediction.",
+  "description": "Drives a website with a virtual mouse using a local LLM, records the flow, and sends it to the cogniscan server for TRIBE v2 brain-response prediction.",
   "minimum_chrome_version": "116",
   "permissions": [
     "debugger",
@@ -21,7 +21,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "scanmyweb"
+    "default_title": "cogniscan"
   },
   "icons": {
     "16": "icon.png",
@@ -34,7 +34,7 @@
         "<all_urls>"
       ],
       "js": [
-        "smw_core.js",
+        "cogniscan_core.js",
         "content.js"
       ],
       "run_at": "document_idle"

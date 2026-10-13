@@ -1,4 +1,4 @@
-/* scanmyweb background service worker: the virtual-mouse driver and recorder.
+/* cogniscan background service worker: the virtual-mouse driver and recorder.
  *
  * start -> create run on server -> open tab -> attach debugger -> Page.startScreencast
  *   loop: mark elements (content script) -> CDP screenshot -> POST /api/agent/step -> animate cursor +
@@ -20,14 +20,14 @@ const api = async (path, body, method) => {
   return r.json();
 };
 const cdp = (method, params) => chrome.debugger.sendCommand({ tabId: S.tabId }, method, params || {});
-function setStatus(text, pct, error) { S.text = text; if (pct !== undefined) S.pct = pct; S.error = !!error; console.log('[smw]', text); }
+function setStatus(text, pct, error) { S.text = text; if (pct !== undefined) S.pct = pct; S.error = !!error; console.log('[cogniscan]', text); }
 
 // ------------------------------------------------------------------ content script helpers
 async function cs(msg, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try { return await chrome.tabs.sendMessage(S.tabId, msg); } catch (e) {
       try {
-        await chrome.scripting.executeScript({ target: { tabId: S.tabId }, files: ['smw_core.js', 'content.js'] });
+        await chrome.scripting.executeScript({ target: { tabId: S.tabId }, files: ['cogniscan_core.js', 'content.js'] });
       } catch {}
       await sleep(300);
     }
@@ -79,7 +79,7 @@ let mouse = { x: 200, y: 200 };
 async function moveMouse(x, y, steps = 10) {
   for (let i = 1; i <= steps; i++) {
     const px = mouse.x + (x - mouse.x) * i / steps, py = mouse.y + (y - mouse.y) * i / steps;
-    cs({ type: 'smw:cursor', x: px, y: py }, 1);
+    cs({ type: 'cogniscan:cursor', x: px, y: py }, 1);
     await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: px, y: py }).catch(() => {});
     await sleep(35);
   }
@@ -88,7 +88,7 @@ async function moveMouse(x, y, steps = 10) {
 async function click(x, y) {
   await moveMouse(x, y);
   await sleep(120);
-  cs({ type: 'smw:cursor', x, y, click: true }, 1);
+  cs({ type: 'cogniscan:cursor', x, y, click: true }, 1);
   await cdp('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
   await sleep(70);
   await cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
@@ -114,7 +114,7 @@ async function execute(action) {
   switch (action.type) {
     case 'click': await click(b.x, b.y); break;
     case 'type':
-      await click(b.x, b.y); await cs({ type: 'smw:focus', id: action.id }, 1);
+      await click(b.x, b.y); await cs({ type: 'cogniscan:focus', id: action.id }, 1);
       await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 2, windowsVirtualKeyCode: 65 }).catch(() => {});
       await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 2, windowsVirtualKeyCode: 65 }).catch(() => {});
       await typeText(action.text || '');
@@ -164,11 +164,11 @@ async function loop(cfg) {
     if (S.stepIndex >= S.maxSteps) { reason = 'step cap reached'; break; }
     setStatus(`step ${S.stepIndex + 1}: looking at the page… (${elapsed.toFixed(0)}s / ${S.maxSeconds}s)`, 100 * elapsed / S.maxSeconds);
 
-    const marked = await cs({ type: 'smw:mark' });
+    const marked = await cs({ type: 'cogniscan:mark' });
     if (!marked) { setStatus('content script unreachable; waiting', undefined, true); await sleep(1500); continue; }
     await sleep(80);
     const before = await screenshot();
-    await cs({ type: 'smw:unmark' }, 1);
+    await cs({ type: 'cogniscan:unmark' }, 1);
     const tStart = now();
     setStatus(`step ${S.stepIndex + 1}: asking ${cfg.navModel}…`);
     let res;
@@ -217,7 +217,7 @@ async function finish(reason) {
   await flushFrames();
   while (S.uploading) await sleep(100);
   try { await chrome.debugger.detach({ tabId: S.tabId }); } catch {}
-  cs({ type: 'smw:cursor', x: -100, y: -100 }, 1);
+  cs({ type: 'cogniscan:cursor', x: -100, y: -100 }, 1);
   try { await api(`/api/runs/${S.runId}/finish`, { duration_s: duration, reason }); } catch (e) { setStatus('finish failed: ' + e.message, undefined, true); S.state = 'idle'; return; }
   S.state = 'processing';
   pollProcessing();
@@ -237,7 +237,7 @@ async function pollProcessing() {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === 'smw:start') { start(msg).then(sendResponse); return true; }
-  if (msg.type === 'smw:stop') { S.stopRequested = true; sendResponse({ ok: true }); return; }
-  if (msg.type === 'smw:status') { sendResponse({ state: S.state, text: S.text, pct: S.pct, error: S.error, runId: S.runId, nFrames: S.nFrames, step: S.stepIndex }); return; }
+  if (msg.type === 'cogniscan:start') { start(msg).then(sendResponse); return true; }
+  if (msg.type === 'cogniscan:stop') { S.stopRequested = true; sendResponse({ ok: true }); return; }
+  if (msg.type === 'cogniscan:status') { sendResponse({ state: S.state, text: S.text, pct: S.pct, error: S.error, runId: S.runId, nFrames: S.nFrames, step: S.stepIndex }); return; }
 });

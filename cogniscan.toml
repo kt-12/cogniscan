@@ -1,5 +1,5 @@
-# scanmyweb configuration (overrides server/config.py defaults; scanmyweb.local.toml overrides this,
-# environment variables SCANMYWEB_<KEY> override everything).
+# cogniscan configuration (overrides server/config.py defaults; cogniscan.local.toml overrides this,
+# environment variables COGNISCAN_<KEY> override everything).
 
 port = 8787
 

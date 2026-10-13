@@ -1,4 +1,4 @@
-# scanmyweb
+# cogniscan
 
 Drive a website with a virtual mouse, record the flow, predict the average human brain's fMRI
 response to it with Meta's [TRIBE v2](https://github.com/facebookresearch/tribev2), and let a local
@@ -44,8 +44,8 @@ A viewer per run (`http://127.0.0.1:8787/view/<run>`):
   `facebook/tribev2` weights in a Hugging Face cache, and the fsaverage/HCP-MMP1 atlas in an MNE data
   dir. The same venv needs `nibabel`, `nilearn` and `pyvista` (surface export and video rendering run
   there). By default the server looks in `~/tribev2-eval` (`.venv`, `hf_cache`, `mne_data`); point
-  elsewhere with `TRIBE_EVAL_DIR` or the individual overrides `SCANMYWEB_TRIBE_PYTHON`,
-  `SCANMYWEB_HF_HOME`, `SCANMYWEB_MNE_DATA`, `SCANMYWEB_TRIBE_CACHE` (env or `scanmyweb.toml`).
+  elsewhere with `TRIBE_EVAL_DIR` or the individual overrides `COGNISCAN_TRIBE_PYTHON`,
+  `COGNISCAN_HF_HOME`, `COGNISCAN_MNE_DATA`, `COGNISCAN_TRIBE_CACHE` (env or `cogniscan.toml`).
 - [Ollama](https://ollama.com) with `qwen3-vl:32b-instruct` pulled (default), or any model preset
   from `server/llm/models.yaml`.
 
@@ -54,7 +54,7 @@ A viewer per run (`http://127.0.0.1:8787/view/<run>`):
 ```bash
 make setup                       # uv venv + deps into .venv, then builds the viewer (ui/ → server/static/dist)
 make export-mesh                 # once: server/static/surf/ (fsaverage5 GIfTI + sulc + HCP parcels), uses the TRIBE venv
-.venv/bin/python -m cli.scanmyweb models   # check that Ollama and the presets are reachable
+.venv/bin/python -m cli.cogniscan models   # check that Ollama and the presets are reachable
 make serve                       # http://127.0.0.1:8787
 ```
 
@@ -89,8 +89,8 @@ at `http://127.0.0.1:8787` shows live progress:
 Press **Export video** in the viewer (or the film icon in the run list), or from the CLI:
 
 ```bash
-.venv/bin/python -m cli.scanmyweb export-video 20261013-010232-c829            # lateral views, 3200×830
-.venv/bin/python -m cli.scanmyweb export-video 20261013-010232-c829 --views four   # + medial row, 3200×1550
+.venv/bin/python -m cli.cogniscan export-video 20261013-010232-c829            # lateral views, 3200×830
+.venv/bin/python -m cli.cogniscan export-video 20261013-010232-c829 --views four   # + medial row, 3200×1550
 ```
 
 `server/pipeline/video_export.py` renders the brain with PyVista off-screen in the TRIBE venv (a 74 s
@@ -102,11 +102,11 @@ encodes with NVENC when available. The file is `data/runs/<id>/export.mp4`, serv
 
 ```bash
 # drive Chrome over CDP from the CLI (headless or visible), same server loop
-.venv/bin/python -m cli.scanmyweb agent https://example.com --goal "open the pricing page" --headless
-.venv/bin/python -m cli.scanmyweb agent https://example.com --explore
+.venv/bin/python -m cli.cogniscan agent https://example.com --goal "open the pricing page" --headless
+.venv/bin/python -m cli.cogniscan agent https://example.com --explore
 
 # or feed an existing screen recording (optionally with a steps.json)
-.venv/bin/python -m cli.scanmyweb run recording.mp4 --url https://example.com
+.venv/bin/python -m cli.cogniscan run recording.mp4 --url https://example.com
 ```
 
 ## Models are plug-and-play
@@ -115,7 +115,7 @@ encodes with NVENC when available. The file is `data/runs/<id>/export.mp4`, serv
 in `server/llm/`: `ollama.py` and `openai_compat.py` (vLLM, LM Studio, llama.cpp server…). Add a
 model = add a YAML entry; add a backend = subclass `Provider` and register it in `PROVIDERS`.
 Navigation needs a vision model; interpretation works with text-only models too. Pick per run in the
-popup, or set defaults in `scanmyweb.toml`:
+popup, or set defaults in `cogniscan.toml`:
 
 ```toml
 nav_model = "qwen3-vl"
@@ -137,12 +137,12 @@ max_flow_seconds = 90
 ## Layout
 
 ```
-extension/   manifest, background.js (driver), smw_core.js (marks + cursor), content.js, popup
+extension/   manifest, background.js (driver), cogniscan_core.js (marks + cursor), content.js, popup
 server/      app.py (API + serves the built viewer), config.py, llm/ (providers + presets), agent/ (planner),
              pipeline/ (recorder, TRIBE worker, surfaces + mesh export, video export, job queue),
              interpret/ (stats, writer), static/dist (built viewer, committed), static/surf (generated)
 ui/          React 19 + Vite + Tailwind 4 + shadcn/ui + NiiVue viewer (src/pages, src/components, src/hooks)
-cli/         scanmyweb.py (serve | run | agent | export-video | export-mesh | models | runs), cdp_agent.py
+cli/         cogniscan.py (serve | run | agent | export-video | export-mesh | models | runs), cdp_agent.py
 data/runs/   one folder per run: frames/, steps/, stimulus.mp4, tribe/, slides.json, export.mp4
 ```
 
@@ -153,7 +153,7 @@ reload on :5173, proxied to the server on :8787.
 
 Built and verified on one machine (NVIDIA GB10, Ollama + qwen3-vl:32b-instruct): goal and
 auto-explore runs driven by the CLI CDP agent and by the extension loaded in headless Chromium,
-`scanmyweb run` on a plain screen recording, the viewer in Chrome, and video export. Expect rough
+`cogniscan run` on a plain screen recording, the viewer in Chrome, and video export. Expect rough
 edges on other setups.
 
 ## Licenses

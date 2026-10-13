@@ -64,7 +64,7 @@ export function RunsPage() {
           <h2 className="text-lg font-semibold">Runs</h2>
           <p className="text-sm text-muted-foreground">
             Start a recording from the Chrome extension, or{' '}
-            <code className="mono text-xs">scanmyweb agent URL --goal "…"</code>
+            <code className="mono text-xs">cogniscan agent URL --goal "…"</code>
           </p>
         </div>
         {runs.isError && <span className="text-sm text-red-400">{String(runs.error)}</span>}

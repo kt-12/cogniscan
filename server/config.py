@@ -1,7 +1,7 @@
-"""Runtime configuration for scanmyweb.
+"""Runtime configuration for cogniscan.
 
-Values come from, in increasing priority: defaults below, `scanmyweb.toml` in the repo root,
-`scanmyweb.local.toml` (gitignored), then environment variables named `SCANMYWEB_<KEY>`.
+Values come from, in increasing priority: defaults below, `cogniscan.toml` in the repo root,
+`cogniscan.local.toml` (gitignored), then environment variables named `COGNISCAN_<KEY>`.
 """
 
 from __future__ import annotations
@@ -48,14 +48,14 @@ class Config:
     @classmethod
     def load(cls) -> Config:
         cfg = cls()
-        for name in ("scanmyweb.toml", "scanmyweb.local.toml"):
+        for name in ("cogniscan.toml", "cogniscan.local.toml"):
             p = ROOT / name
             if p.exists():
                 cfg._apply(tomllib.loads(p.read_text()))
         env = {
-            f.name: os.environ[f"SCANMYWEB_{f.name.upper()}"]
+            f.name: os.environ[f"COGNISCAN_{f.name.upper()}"]
             for f in fields(cls)
-            if f"SCANMYWEB_{f.name.upper()}" in os.environ
+            if f"COGNISCAN_{f.name.upper()}" in os.environ
         }
         cfg._apply(env)
         cfg.data_dir.mkdir(parents=True, exist_ok=True)

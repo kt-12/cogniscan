@@ -1,7 +1,7 @@
 """Drive Chrome over the DevTools protocol without the extension (same server API, same loop).
 
-Used for headless demos and tests: `scanmyweb agent URL --goal "..." [--headless]`.
-Launches a fresh Chrome profile with --remote-debugging-port, injects extension/smw_core.js into
+Used for headless demos and tests: `cogniscan agent URL --goal "..." [--headless]`.
+Launches a fresh Chrome profile with --remote-debugging-port, injects extension/cogniscan_core.js into
 every document, streams Page.startScreencast frames to the server, asks /api/agent/step for the next
 action, executes it with Input.* events (virtual mouse), and posts step events.
 """
@@ -22,7 +22,7 @@ import httpx
 import websocket
 
 ROOT = Path(__file__).resolve().parent.parent
-CORE_JS = (ROOT / "extension" / "smw_core.js").read_text()
+CORE_JS = (ROOT / "extension" / "cogniscan_core.js").read_text()
 KEYS = {"Enter": (13, "\r"), "Escape": (27, None), "Tab": (9, None), "Backspace": (8, None), "ArrowDown": (40, None), "ArrowUp": (38, None)}
 
 
@@ -100,7 +100,7 @@ def launch_chrome(url: str, headless: bool, chrome: str | None, port: int = 9333
     binary = chrome or shutil.which("google-chrome") or shutil.which("google-chrome-stable") or shutil.which("chromium") or shutil.which("chromium-browser")
     if not binary:
         raise RuntimeError("no Chrome binary found; pass --chrome")
-    profile = tempfile.mkdtemp(prefix="scanmyweb-chrome-")
+    profile = tempfile.mkdtemp(prefix="cogniscan-chrome-")
     cmd = [
         binary, f"--remote-debugging-port={port}", f"--user-data-dir={profile}", "--no-first-run",
         "--no-default-browser-check", "--window-size=1280,800", "--disable-infobars", "--hide-scrollbars",
@@ -165,7 +165,7 @@ def drive(*, url: str, mode: str, goal: str, headless: bool, nav_model: str | No
         return r.get("result", {}).get("value")
 
     def ensure_core():
-        if not ev("!!window.__smw"):
+        if not ev("!!window.__cogniscan"):
             cdp.send("Runtime.evaluate", {"expression": CORE_JS})
 
     mouse = [640, 400]
@@ -174,7 +174,7 @@ def drive(*, url: str, mode: str, goal: str, headless: bool, nav_model: str | No
         for i in range(1, steps + 1):
             px = mouse[0] + (x - mouse[0]) * i / steps
             py = mouse[1] + (y - mouse[1]) * i / steps
-            ev(f"window.__smw && window.__smw.cursor({px},{py},false)")
+            ev(f"window.__cogniscan && window.__cogniscan.cursor({px},{py},false)")
             cdp.send("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": px, "y": py})
             time.sleep(0.035)
         mouse[0], mouse[1] = x, y
@@ -182,7 +182,7 @@ def drive(*, url: str, mode: str, goal: str, headless: bool, nav_model: str | No
     def click(x, y):
         move(x, y)
         time.sleep(0.12)
-        ev(f"window.__smw && window.__smw.cursor({x},{y},true)")
+        ev(f"window.__cogniscan && window.__cogniscan.cursor({x},{y},true)")
         cdp.send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1})
         time.sleep(0.07)
         cdp.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1})
@@ -201,7 +201,7 @@ def drive(*, url: str, mode: str, goal: str, headless: bool, nav_model: str | No
             click(bb["x"], bb["y"])
         elif t == "type":
             click(bb["x"], bb["y"])
-            ev(f"window.__smw && window.__smw.focus({action['id']})")
+            ev(f"window.__cogniscan && window.__cogniscan.focus({action['id']})")
             cdp.send("Input.dispatchKeyEvent", {"type": "keyDown", "key": "a", "code": "KeyA", "modifiers": 2, "windowsVirtualKeyCode": 65})
             cdp.send("Input.dispatchKeyEvent", {"type": "keyUp", "key": "a", "code": "KeyA", "modifiers": 2, "windowsVirtualKeyCode": 65})
             for ch in action.get("text", ""):
@@ -249,11 +249,11 @@ def drive(*, url: str, mode: str, goal: str, headless: bool, nav_model: str | No
                 reason = "step cap reached"
                 break
             ensure_core()
-            marked = ev("JSON.stringify(window.__smw.mark())")
+            marked = ev("JSON.stringify(window.__cogniscan.mark())")
             marked = json.loads(marked) if marked else {"elements": [], "viewport": {"url": url, "title": ""}}
             time.sleep(0.08)
             before = cdp.send("Page.captureScreenshot", {"format": "jpeg", "quality": 70})["data"]
-            ev("window.__smw && window.__smw.unmark()")
+            ev("window.__cogniscan && window.__cogniscan.unmark()")
             t_start = now()
             paused[1] = time.time()
             res = http.post("/api/agent/step", json={

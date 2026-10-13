@@ -1,4 +1,4 @@
-"""scanmyweb local server: run registry, recording ingest, agent step endpoint, slideshow."""
+"""cogniscan local server: run registry, recording ingest, agent step endpoint, slideshow."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from .config import CONFIG
 from .llm import describe_models, get_provider, presets
 from .pipeline.tribe_job import JobQueue, RunStore, read_json, write_json
 
-app = FastAPI(title="scanmyweb", version="0.1.0")
+app = FastAPI(title="cogniscan", version="0.1.0")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
@@ -246,7 +246,7 @@ def export_video(run_id: str, views: str = "lateral", fps: int = 10):
 
 @app.get("/api/runs/{run_id}/export.mp4")
 def export_file(run_id: str):
-    return FileResponse(_file(run_id, "export.mp4"), media_type="video/mp4", filename=f"scanmyweb-{run_id}.mp4")
+    return FileResponse(_file(run_id, "export.mp4"), media_type="video/mp4", filename=f"cogniscan-{run_id}.mp4")
 
 
 # ---------------------------------------------------------------- agent
@@ -300,12 +300,12 @@ def preds_gii(run_id: str, hemi: str):
 
 @app.get("/surf/{name}")
 def surf_file(name: str):
-    """Shared fsaverage5 files produced by `scanmyweb export-mesh` (NiiVue reads them by extension)."""
+    """Shared fsaverage5 files produced by `cogniscan export-mesh` (NiiVue reads them by extension)."""
     if "/" in name or ".." in name:
         raise HTTPException(400, "bad name")
     p = CONFIG.static_dir / "surf" / name
     if not p.exists():
-        raise HTTPException(404, "missing: run `scanmyweb export-mesh`")
+        raise HTTPException(404, "missing: run `cogniscan export-mesh`")
     media = "application/json" if name.endswith(".json") else "application/octet-stream"
     return FileResponse(p, media_type=media, filename=name)
 

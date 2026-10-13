@@ -115,7 +115,7 @@ function Viewer({ id, data }: { id: string; data: Slides }) {
                     />
                     {brainErr && (
                       <div className="absolute inset-0 flex items-center justify-center bg-background/80 p-4 text-center text-sm text-red-300">
-                        Brain viewer failed: {brainErr}. Run <code className="mx-1">scanmyweb export-mesh</code> and reload.
+                        Brain viewer failed: {brainErr}. Run <code className="mx-1">cogniscan export-mesh</code> and reload.
                       </div>
                     )}
                     <div className="absolute top-2 left-2 flex flex-wrap items-center gap-1">

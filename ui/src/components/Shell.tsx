@@ -24,7 +24,7 @@ export function Shell() {
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border px-4">
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <Brain className="size-5 text-primary" />
-          scan<span className="text-primary">my</span>web
+          <span>cogni<span className="text-primary">scan</span></span>
         </Link>
         <Select value={id ?? null} onValueChange={(v) => v && nav(`/view/${v}`)} items={items}>
           <SelectTrigger size="sm" className="w-72">

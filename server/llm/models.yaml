@@ -1,6 +1,6 @@
 # Model presets. `provider` is a key in server/llm/__init__.py:PROVIDERS.
 # `vision: true` means the model accepts images (required for navigation).
-# Pick presets by name in scanmyweb.toml (nav_model / interp_model) or in the extension popup.
+# Pick presets by name in cogniscan.toml (nav_model / interp_model) or in the extension popup.
 models:
   qwen3-vl:
     provider: ollama
@@ -44,7 +44,7 @@ models:
     vision: false
     description: NVIDIA Nemotron 3 nano text-only; interpretation only
 
-  # Example of a non-Ollama backend. Point SCANMYWEB_OPENAI_COMPAT_URL at vLLM / LM Studio.
+  # Example of a non-Ollama backend. Point COGNISCAN_OPENAI_COMPAT_URL at vLLM / LM Studio.
   vllm-qwen-vl:
     provider: openai_compat
     model: Qwen/Qwen3-VL-32B-Instruct

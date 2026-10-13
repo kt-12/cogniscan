@@ -1,4 +1,4 @@
-// Typed client for the scanmyweb FastAPI server (same origin; `npm run dev` proxies /api and /surf).
+// Typed client for the cogniscan FastAPI server (same origin; `npm run dev` proxies /api and /surf).
 
 export type RunStatus = 'recording' | 'recorded' | 'queued' | 'processing' | 'done' | 'failed'
 

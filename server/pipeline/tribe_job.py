@@ -75,7 +75,7 @@ class JobQueue:
         self.q: queue.Queue[tuple[str, str, dict]] = queue.Queue()
         self.current: str | None = None
         self.current_kind: str | None = None
-        self.thread = threading.Thread(target=self._loop, daemon=True, name="scanmyweb-jobs")
+        self.thread = threading.Thread(target=self._loop, daemon=True, name="cogniscan-jobs")
         self.thread.start()
 
     def submit(self, run_id: str) -> None:
@@ -126,7 +126,7 @@ def run_tribe_worker(store: RunStore, run_id: str, video: Path, out_dir: Path) -
         "--max-height", str(CONFIG.video_max_height),
     ]
     if not CONFIG.tribe_python.exists():
-        raise RuntimeError(f"TRIBE interpreter not found: {CONFIG.tribe_python} (set SCANMYWEB_TRIBE_PYTHON)")
+        raise RuntimeError(f"TRIBE interpreter not found: {CONFIG.tribe_python} (set COGNISCAN_TRIBE_PYTHON)")
     with open(log, "w") as lf:
         proc = subprocess.Popen(
             cmd, cwd=str(ROOT), env=CONFIG.worker_env(),
@@ -167,7 +167,7 @@ def run_export(store: RunStore, run_id: str, views: str = "lateral", fps: int = 
     run_dir = store.dir(run_id)
     surf_dir = CONFIG.static_dir / "surf"
     if not (surf_dir / "parcels.json").exists():
-        raise RuntimeError("surfaces missing: run `scanmyweb export-mesh` first")
+        raise RuntimeError("surfaces missing: run `cogniscan export-mesh` first")
     if not (run_dir / "slides.json").exists():
         raise RuntimeError("run is not processed yet")
     log = run_dir / "export.log"

@@ -1,13 +1,13 @@
-"""scanmyweb command line.
+"""cogniscan command line.
 
-    scanmyweb serve                       start the local server (http://127.0.0.1:8787)
-    scanmyweb run VIDEO [--steps STEPS.json] [--url URL] [--goal TEXT]
+    cogniscan serve                       start the local server (http://127.0.0.1:8787)
+    cogniscan run VIDEO [--steps STEPS.json] [--url URL] [--goal TEXT]
                                           process an existing screen recording (no extension needed)
-    scanmyweb agent URL [--goal TEXT | --explore] [--headless]
+    cogniscan agent URL [--goal TEXT | --explore] [--headless]
                                           drive Chrome over the DevTools protocol (no extension needed)
-    scanmyweb export-mesh                 (re)build server/static/mesh.json with the TRIBE interpreter
-    scanmyweb models                      list model presets and check the LLM backend
-    scanmyweb runs                        list runs
+    cogniscan export-mesh                 (re)build server/static/mesh.json with the TRIBE interpreter
+    cogniscan models                      list model presets and check the LLM backend
+    cogniscan runs                        list runs
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from server.config import ROOT as SROOT
 def cmd_serve(args) -> None:
     import uvicorn
 
-    print(f"scanmyweb server on http://{CONFIG.host}:{CONFIG.port}  (nav={CONFIG.nav_model}, interp={CONFIG.interp_model})")
+    print(f"cogniscan server on http://{CONFIG.host}:{CONFIG.port}  (nav={CONFIG.nav_model}, interp={CONFIG.interp_model})")
     print("Load the extension: chrome://extensions -> Developer mode -> Load unpacked -> ./extension")
     uvicorn.run("server.app:app", host=CONFIG.host, port=CONFIG.port, reload=args.reload, log_level="info")
 
@@ -113,7 +113,7 @@ def cmd_runs(args) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    ap = argparse.ArgumentParser(prog="scanmyweb", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(prog="cogniscan", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("serve"); s.add_argument("--reload", action="store_true"); s.set_defaults(fn=cmd_serve)
     s = sub.add_parser("run"); s.add_argument("video"); s.add_argument("--steps"); s.add_argument("--url"); s.add_argument("--goal")
